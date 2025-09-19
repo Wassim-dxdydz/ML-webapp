@@ -30,16 +30,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", get_random_secret_key())
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # Allow your Render domain + local dev
-ALLOWED_HOSTS = os.getenv(
-    "ALLOWED_HOSTS",
-    "localhost,127.0.0.1"
-).split(",")
-
-# CSRF trusted origins must be full URLs (Django 4+)
-CSRF_TRUSTED_ORIGINS = [
-    f"https://{h.strip()}" for h in ALLOWED_HOSTS
-    if h.strip() and "." in h  # skip localhost entries
-]
+ALLOWED_HOSTS = ["ml-webapp-utr5.onrender.com", "localhost", "127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = ["https://ml-webapp-utr5.onrender.com"]
 
 # Application definition
 
