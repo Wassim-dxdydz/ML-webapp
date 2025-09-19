@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Entraînement du modèle</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 36%;
+      background-color: #faffbf;
+      padding: 20px 30px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+
+    .main-content {
+      flex-grow: 1;
+      padding: 10px 40px 40px 40px; /* réduit padding top de 40px → 20px */
+    }
+
+    .main-content p {
+      margin-top: 5px;  /* réduit l’espace au-dessus de chaque paragraphe */
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      margin-bottom: 5px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 25px;
+    }
+
+    select {
+      width: 25%;
+      padding: 8px 30px 8px 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background-color: white;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2210%22%20height%3D%227%22%20viewBox%3D%220%200%2010%207%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M0%200l5%207%205-7z%22%20fill%3D%22%23666%22/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+    }
+
+    .select-row {
+      display: flex;
+      gap: 30px;
+      align-items: flex-end;
+    }
+
+    .select-group {
+      flex: 1;
+    }
+
+    .select-small {
+      width: 150px;
+    }
+
+    .slider-container {
+      margin-top: 20px;
+    }
+
+    .slider-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .slider-value {
+      font-weight: bold;
+      color: #ff6f00;
+      margin-left: 10px;
+    }
+
+    input[type=range].slider {
+        width: 100%;
+        height: 10px;
+        border-radius: 5px;
+        background: linear-gradient(to right, #ff6f00 50%, #fff 50%);
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        padding: 0; /* important pour éviter décalage dans certains navigateurs */
+    }
+
+    /* Chrome, Edge, Safari */
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ff6f00;
+        cursor: pointer;
+    }
+
+    /* Firefox */
+    input[type=range]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border: none;
+        border-radius: 50%;
+        background: #ff6f00;
+        cursor: pointer;
+    }
+
+    /* Correction de hauteur de la piste pour Firefox */
+    input[type=range]::-moz-range-track {
+        height: 10px;
+        background: transparent;
+        border-radius: 5px;
+    }
+
+
+    .button-container {
+      text-align: right;
+      margin-top: 30px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #ff6f00;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #ff6f00;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="sidebar">
+    <form method="POST" id="prediction-form" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="select-row">
+        <div class="select-group">
+          <label for="target_type">Type de prédiction :</label>
+          <select name="target_type" id="target_type" class="select-small">
+          <option value="cu" {% if prev and prev.target == 'cu' %}selected{% endif %}>CU</option>
+          <option value="uu" {% if prev and prev.target == 'uu' %}selected{% endif %}>UU</option>
+          <option value="cd" {% if prev and prev.target == 'cd' %}selected{% endif %}>CD</option>
+          </select>
+        </div>
+
+        <div class="select-group">
+          <label for="soil_type">Nature du sol :</label>
+          <select name="soil_type" id="soil_type" class="select-small">
+            <option value="">-- Sélectionnez --</option>
+            <option value="argile" {% if prev and prev.soil == 'argile' %}selected{% endif %}>Argile</option>
+            <option value="limons" {% if prev and prev.soil == 'limons' %}selected{% endif %}>Limons</option>
+            <option value="marne"  {% if prev and prev.soil == 'marne'  %}selected{% endif %}>Marne</option>
+            <option value="sable"  {% if prev and prev.soil == 'sable'  %}selected{% endif %}>Sable</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="slider-container">
+        <label class="slider-label" for="FC-slider">FC (%) :
+          <span id="FC-value" class="slider-value">
+            {{ prev.FC|default:"30.0" }}
+          </span>
+        </label>
+        <input type="range" min="0.0" max="100.0" step="0.1"
+              value="{{ prev.FC|default:'30.0' }}"
+              class="slider" id="FC-slider" name="FC"
+              oninput="document.getElementById('FC-value').innerText = this.value">
+      </div>
+
+      <div class="slider-container">
+        <label class="slider-label" for="WL-slider">WL :
+          <span id="WL-value" class="slider-value">
+            {{ prev.WL|default:"40.0" }}
+          </span>
+        </label>
+        <input type="range" min="0.0" max="100.0" step="0.1"
+              value="{{ prev.WL|default:'40.0' }}"
+              class="slider" id="WL-slider" name="WL"
+              oninput="document.getElementById('WL-value').innerText = this.value">
+      </div>
+
+      <div class="slider-container">
+        <label class="slider-label" for="Ip-slider">Ip :
+          <span id="Ip-value" class="slider-value">
+            {{ prev.IP|default:"15.0" }}
+          </span>
+        </label>
+        <input type="range" min="0.0" max="100.0" step="0.1"
+              value="{{ prev.IP|default:'15.0' }}"
+              class="slider" id="Ip-slider" name="Ip"
+              oninput="document.getElementById('Ip-value').innerText = this.value">
+      </div>
+
+      <div class="slider-container">
+        <label class="slider-label" for="MC-slider">MC :
+          <span id="MC-value" class="slider-value">
+            {{ prev.MC|default:"25.0" }}
+          </span>
+        </label>
+        <input type="range" min="0.0" max="100.0" step="0.1"
+              value="{{ prev.MC|default:'25.0' }}"
+              class="slider" id="MC-slider" name="MC"
+              oninput="document.getElementById('MC-value').innerText = this.value">
+      </div>
+
+      <div class="slider-container">
+        <label class="slider-label" for="SR-slider">SR :
+          <span id="SR-value" class="slider-value">
+            {{ prev.SR|default:"80.0" }}
+          </span>
+        </label>
+        <input type="range" min="0.0" max="100.0" step="0.1"
+              value="{{ prev.SR|default:'80.0' }}"
+              class="slider" id="SR-slider" name="SR"
+              oninput="document.getElementById('SR-value').innerText = this.value">
+      </div>
+
+      <div class="slider-container">
+        <label class="slider-label" for="ROD-slider">ROD :
+          <span id="ROD-value" class="slider-value">
+            {{ prev.ROD|default:"1.6" }}
+          </span>
+        </label>
+        <input type="range" min="0.0" max="3.0" step="0.01"
+              value="{{ prev.ROD|default:'1.6' }}"
+              class="slider" id="ROD-slider" name="ROD"
+              oninput="document.getElementById('ROD-value').innerText = this.value">
+      </div>
+
+
+
+      <div class="button-container">
+        <button type="submit">Entraîner</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="main-content">
+    <h2>Résultats</h2>
+    {% if results %}
+      <p>
+        Ces résultats sont pour la nature <strong>{{ results.soil }}</strong>,
+        prédiction <strong>{{ results.target|upper }}</strong>,
+        avec le vecteur
+        <strong>(FC={{ results.vector.FC }}, WL={{ results.vector.WL }},
+        IP={{ results.vector.IP }}, MC={{ results.vector.MC }},
+        SR={{ results.vector.SR }}, ROD={{ results.vector.ROD }})</strong>.
+      </p>
+      <p><strong>Cohésion prédite (COH) :</strong> {{ results.coh }} kPa</p>
+      <p><strong>Angle de frottement (PHI) :</strong> {{ results.phi }} °</p>
+
+      {% if mohr_plot %}
+        <img
+          src="data:image/png;base64,{{ mohr_plot }}"
+          alt="Cercle de Mohr"
+          style="max-width:100%;height:auto;border:1px solid #eee;border-radius:6px;"
+        />
+      {% endif %}
+
+    {% else %}
+      <p>Aucun résultat pour l'instant.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+  const sliderConfigs = {
+    // --- CD ---
+    cd_sable: {
+      FC:  [29,   47,     29],
+      WL:  [30,   53.3,   30],
+      IP:  [15,   26,     15],
+      MC:  [10,   21,     10],
+      SR:  [16,   100,    16],
+      ROD: [1.65, 1.97, 1.65]
+    },
+    cd_argile: {
+      FC:  [59,   100,    59],
+      WL:  [34,   88.41,  34],
+      IP:  [10,   43.73,  10],
+      MC:  [13,   38,     13],
+      SR:  [75,   100,    75],
+      ROD: [1.35, 1.88, 1.35]
+    },
+
+    // --- CU ---
+    // Combined "Limons/Marne" ranges you gave
+    cu_limons: {
+      FC:  [11.24, 100,   11.24],
+      WL:  [23.27, 90.47, 23.27],
+      IP:  [6.16,  64,     6.16],
+      MC:  [12.63, 36.62, 12.63],
+      SR:  [39.9,  159.35, 39.9],
+      ROD: [1.26,  2.01,  1.26]
+    },
+    cu_marne: "cu_limons",
+    cu_argile: {
+      FC:  [40,    100,   40],
+      WL:  [29.58, 91.64, 29.58],
+      IP:  [9.57,  45.4,   9.57],
+      // You provided SR for CU Argile; included here (currently hidden by your UI)
+      SR:  [59.91, 151.77, 59.91],
+      MC:  [9.13,  45.29,  9.13],
+      ROD: [1.34,  1.97,  1.34]
+    },
+
+    // --- UU ---
+    // Combined "Limons/Marne" ranges you gave
+    uu_limons: {
+      FC:  [28,    100,   28],
+      WL:  [23.9,  91.6,  23.9],
+      IP:  [7.65,  45.4,   7.65],
+      MC:  [9.13,  45.29,  9.13],
+      SR:  [13,    151.77, 13],
+      ROD: [1.42,  2.02,  1.42]
+    },
+    uu_marne: "uu_limons",
+    uu_argile: {
+      FC:  [28,    100,   28],
+      WL:  [23.92, 91.64, 23.92],
+      IP:  [7.65,  45.4,   7.65],
+      MC:  [9.13,  45.29,  9.13],
+      SR:  [13,    151.77, 13],
+      ROD: [1.42,  2.02,  1.42]
+    }
+  };
+
+
+  const sliders = {
+    FC: document.getElementById('FC-slider'),
+    WL: document.getElementById('WL-slider'),
+    IP: document.getElementById('Ip-slider'),
+    MC: document.getElementById('MC-slider'),
+    SR: document.getElementById('SR-slider'),
+    ROD: document.getElementById('ROD-slider')
+  };
+
+  const valueLabels = {
+    FC: document.getElementById('FC-value'),
+    WL: document.getElementById('WL-value'),
+    IP: document.getElementById('Ip-value'),
+    MC: document.getElementById('MC-value'),
+    SR: document.getElementById('SR-value'),
+    ROD: document.getElementById('ROD-value')
+  };
+
+  function updateSliders() {
+    const soil = document.getElementById('soil_type').value;
+    const type = document.getElementById('target_type').value;
+    let configKey = `${type}_${soil}`;
+    if (typeof sliderConfigs[configKey] === 'string') configKey = sliderConfigs[configKey];
+
+    const config = sliderConfigs[configKey];
+    if (!config) return;
+
+    Object.entries(config).forEach(([key, [min, max, defVal]]) => {
+      const el = sliders[key];
+      el.min = min;
+      el.max = max;
+
+      // Only set a default if field is empty (first time) — otherwise keep user value
+      if (!el.dataset.touched && (el.value === "" || el.value == null)) {
+        el.value = defVal;
+        valueLabels[key].innerText = defVal;
+      } else {
+        valueLabels[key].innerText = el.value;
+      }
+      updateSliderBackground(el);
+    });
+  }
+
+  // mark sliders as touched when user moves them
+  document.querySelectorAll('.slider').forEach(sl => {
+    sl.addEventListener('input', () => { sl.dataset.touched = "1"; });
+  });
+
+
+  // --- listeners (target first, then soil) ---
+  document.getElementById('target_type').addEventListener('change', () => {
+    updateTargetOptions();                 // repopule soil selon target
+    if (typeof toggleSRVisibility === 'function') toggleSRVisibility();
+  });
+
+  document.getElementById('soil_type').addEventListener('change', () => {
+    updateSliders();                       // sliders après choix du sol
+    if (typeof toggleSRVisibility === 'function') toggleSRVisibility();
+  });
+
+  // Init au chargement: aligne "soil" sur le target courant, puis (si sol déjà choisi) met à jour les sliders
+  window.addEventListener('DOMContentLoaded', () => {
+    updateTargetOptions();
+  });
+
+  function updateTargetOptions() {
+    const soil = document.getElementById('soil_type');
+    const target = document.getElementById('target_type').value;
+
+    const previous = soil.value; // mémorise l'ancien choix
+
+    // Nettoie les options
+    soil.innerHTML = '<option value="">-- Sélectionnez --</option>';
+
+    let options = [];
+    if (target === 'cu' || target === 'uu') {
+      options = ['argile', 'limons', 'marne'];
+    } else if (target === 'cd') {
+      options = ['argile', 'sable'];
+    }
+
+    if (options.length > 0) {
+      soil.disabled = false;
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt.charAt(0).toUpperCase() + opt.slice(1);
+        soil.appendChild(option);
+      });
+
+      // restaure l'ancien sol si encore valable, sinon force le choix utilisateur
+      soil.value = options.includes(previous) ? previous : '';
+    } else {
+      soil.disabled = true;
+      soil.value = '';
+    }
+
+    // met à jour seulement si un sol est choisi
+    if (soil.value) updateSliders();
+  }
+
+  document.getElementById('target_type').addEventListener('change', () => {
+    updateSliders();
+    toggleSRVisibility();
+  });
+
+  document.getElementById('soil_type').addEventListener('change', () => {
+    updateSliders();
+    toggleSRVisibility();
+  });
+
+  // appel initial pour le chargement de la page
+  window.onload = typeof toggleSRVisibility === 'function' ? toggleSRVisibility : null;
+
+  document.querySelector("form").addEventListener("submit", function () {
+    document.getElementById("target_type").disabled = false;
+  });
+</script>
+
+<script>
+
+  function updateSliderBackground(slider) {
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    const val = parseFloat(slider.value);
+    const percent = ((val - min) / (max - min)) * 100;
+    slider.style.background = `linear-gradient(to right, #ff6f00 ${percent}%, #fff ${percent}%)`;
+  }
+
+  document.querySelectorAll('.slider').forEach(slider => {
+    updateSliderBackground(slider);
+    slider.addEventListener('input', () => updateSliderBackground(slider));
+  });
+</script>
+
+</body>
+</html>

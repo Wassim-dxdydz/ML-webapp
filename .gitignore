@@ -1,0 +1,14 @@
+# --- env files ---
+.env
+*.env
+.env.*
+.envrc
+.flaskenv
+# keep a template tracked
+!.env.example
+
+# --- virtual environments ---
+.venv/
+venv/
+env/
+ENV/
