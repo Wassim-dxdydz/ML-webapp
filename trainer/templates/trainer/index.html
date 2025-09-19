@@ -260,10 +260,14 @@
       <p>
         Ces résultats sont pour la nature <strong>{{ results.soil }}</strong>,
         prédiction <strong>{{ results.target|upper }}</strong>,
-        avec le vecteur
-        <strong>(FC={{ results.vector.FC }}, WL={{ results.vector.WL }},
-        IP={{ results.vector.IP }}, MC={{ results.vector.MC }},
-        SR={{ results.vector.SR }}, ROD={{ results.vector.ROD }})</strong>.
+        avec le vecteur :
+      </p>
+      <p style="text-align:center; margin:.25rem 0 1rem;">
+        <strong>
+          (FC={{ results.vector.FC }}, WL={{ results.vector.WL }},
+          IP={{ results.vector.IP }}, MC={{ results.vector.MC }},
+          SR={{ results.vector.SR }}, ROD={{ results.vector.ROD }})
+        </strong>.
       </p>
       <p><strong>Cohésion prédite (COH) :</strong> {{ results.coh }} kPa</p>
       <p><strong>Angle de frottement (PHI) :</strong> {{ results.phi }} °</p>
