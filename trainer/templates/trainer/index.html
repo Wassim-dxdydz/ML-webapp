@@ -269,8 +269,10 @@
           SR={{ results.vector.SR }}, ROD={{ results.vector.ROD }})
         </strong>.
       </p>
-      <p><strong>Cohésion prédite (COH) :</strong> {{ results.coh }} kPa</p>
-      <p><strong>Angle de frottement (PHI) :</strong> {{ results.phi }} °</p>
+      <ul class="results-list">
+        <li><strong>Cohésion prédite (COH)</strong> : {{ results.coh }} kPa</li>
+        <li><strong>Angle de frottement (PHI)</strong> : {{ results.phi }} °</li>
+      </ul>
 
       {% if mohr_plot %}
         <img
